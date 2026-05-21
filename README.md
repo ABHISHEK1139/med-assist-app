@@ -1,22 +1,30 @@
-# Med Assist App — Local Medical AI Assistant
+# Med Assist App — Local Medical AI Assistant 🩺
 
-A privacy-first, local medical AI application built for PC-to-phone portability. Run a medical AI on your PC's GPU and connect securely from your Android phone over local WiFi.
+A privacy-first, local medical AI application built for PC-to-phone portability. Run a medical AI on your PC's GPU and connect securely from your Android phone over local WiFi. 
 
-## 🎯 Overview
+Recently upgraded with the **Ultimate Master Upgrade Plan**, Med Assist App is now a flagship-level health companion!
 
-    Med Assist App is a hybrid medical AI assistant powered by **Gemma-2-2B** (local GPU) OR **Any Cloud Provider** (OpenAI, Gemini, Anthropic, etc.). You have full control — run entirely on your own hardware for maximum privacy, or connect to powerful cloud models.
+## 🎯 Overview & New Flagship Features
 
-    ### Key Features
+Med Assist App is powered by **Gemma-2-2B** (local GPU) OR **Any Cloud Provider** (OpenAI, Gemini, Anthropic, etc.). You have full control — run entirely on your own hardware for maximum privacy, or connect to powerful cloud models.
 
-    - 🔒 **100% Local or Cloud Configurable** — You choose. Run Gemma 2B locally (no data leaves your device), or plug in an API key for GPT-4 / Claude / Gemini.
-    - 🌍 **Multi-Provider Support** — Integrated with `litellm` to support 100+ AI models via a single `.env` variable (`MED_ASSIST_APP_AI_MODEL`).
-- 🧠 **Agentic AI Reasoning** — Multi-step reasoning with tool calls (symptom queries, health data lookups).
+### ✨ The "WOW Factor" Experience
+- 🎨 **Glassmorphism UI** — Stunning frosted glass app bars, message bubbles, and radial menus for a premium feel.
+- 🎙️ **Voice Input & Accessibility** — Tap the microphone icon for quick Speech-to-Text entry on the fly.
+- 🌊 **Fluid Animations** — Everything slides, fades, and pulses naturally using `flutter_animate`.
+
+### 🧠 Radical AI Features
+- 🏛️ **Multi-Agent Consultation Room** — Toggle "Consultation Mode" (🧠) to trigger a 3-agent debate. The AI spins up a **Diagnostician**, **Clinical Pharmacist**, and **Lead Physician** to evaluate your complex queries and synthesize a final answer.
+- 💊 **Pill Bottle OCR** — Tap the `+` menu and select "Pill OCR". Take a picture of any pill bottle, and the app uses local Machine Learning to instantly extract the drug name and dosage directly into your chat.
+- ⌚ **Wearable Health Sync** — Connects to Apple Health / Google Fit to automatically pull daily steps, heart rate, and sleep data into the AI's context window.
+- 🔬 **Live Medical Database Integration** — If you ask about drug recalls or complex literature, the AI can autonomously decide to query **OpenFDA** and **PubMed** in real-time, retrieving live citations instead of relying solely on offline weights.
+- 🚑 **Emergency Caregiver Export** — With one tap in the Digital Health Archive, instantly generate and share a clean, printable PDF summarizing your active conditions, allergies, and medications.
+
+### Core Capabilities
+- 🔒 **100% Local Configurable** — Keep your data off the cloud by running locally, or plug in an API key via `litellm`.
 - 📄 **Document Memory (RAG)** — Upload PDFs, lab reports, and images. ChromaDB retrieves relevant context for each query.
-- 💡 **Explainability** — See which documents influenced each AI response ("Why?" button).
-- 📱 **Phone-to-PC Architecture** — Phone stores health data; PC runs the model on GPU.
-- 🤖 **Telegram Bot Bridge** — Optional Telegram integration for chat access.
 - 🏥 **Digital Health Archive** — Automatically extracts conditions, medications, allergies, and surgeries from conversations.
-- 📸 **Medical Image Analysis** — OCR and image processing for prescriptions, lab reports, X-rays.
+- 📱 **Phone-to-PC Architecture** — Phone stores your sensitive health data; PC runs the heavy model computation.
 
 ## 🏗️ Architecture
 
@@ -24,13 +32,12 @@ A privacy-first, local medical AI application built for PC-to-phone portability.
 ┌─────────────────────────────────────────────────────────────┐
 │                    Flutter Frontend (Phone)                  │
 │  ┌──────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │ Chat UI  │  │Privacy Badge │  │ Explainability Drawer │  │
-│  │ (BLoC)   │  │(local badge) │  │ (document citations)  │  │
-│  └────┬─────┘  └──────────────┘  └───────────────────────┘  │
-│       │                                                     │
-│  ┌────┴──────────────────────────────────────────────────┐  │
-│  │ Health Archive (SQLite + Hive) — stored on PHONE      │  │
-│  │ Symptoms · Conditions · Medications · Allergies       │  │
+│  │ Chat UI  │  │ Radial Menus │  │  PDF Export Service   │  │
+│  │ (BLoC)   │  │ & OCR Vision │  │  (Caregiver Profile)  │  │
+│  └────┬─────┘  └──────┬───────┘  └───────────┬───────────┘  │
+│       │               │                      │              │
+│  ┌────┴───────────────┴──────────────────────┴───────────┐  │
+│  │ Health Archive (SQLite) & Wearable Sync (Health API)  │  │
 │  └───────────────────────┬───────────────────────────────┘  │
 └──────────────────────────┼──────────────────────────────────┘
                            │ HTTP/REST (Local WiFi)
@@ -42,204 +49,77 @@ A privacy-first, local medical AI application built for PC-to-phone portability.
 │  └──────┬──────┘  └──────────────┘  └──────────────────┘   │
 │         │                                                   │
 │  ┌──────┴──────┐  ┌──────────────┐  ┌──────────────────┐   │
-│  │  Agentic    │  │   Profile    │  │   Telegram       │   │
-│  │  Engine     │  │   Manager    │  │   Bot Bridge     │   │
+│  │ Multi-Agent │  │  Live APIs   │  │   Telegram       │   │
+│  │ Engine      │  │(FDA/PubMed)  │  │   Bot Bridge     │   │
 │  └─────────────┘  └──────────────┘  └──────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
-```
-
-## 📂 Project Structure
-
-```
-med ai/
-├── backend/                          # Python Backend
-│   ├── main.py                       # Entry point (uvicorn server)
-│   ├── requirements.txt              # Python dependencies
-│   ├── models/                       # Model files (.task) — gitignored
-│   ├── memory/                       # ChromaDB vector store — gitignored
-│   ├── logs/                         # Server logs — gitignored
-│   └── src/
-│       ├── config.py                 # Settings (pydantic-settings, .env)
-│       ├── api/
-│       │   ├── server.py             # FastAPI app, lifespan, CORS
-│       │   └── routes.py             # All REST endpoints
-│       ├── inference/
-│       │   ├── llm_service.py        # HuggingFace Transformers + MockLLM
-│       │   ├── agentic_engine.py     # ReAct-style multi-step reasoning
-│       │   ├── image_processor.py    # OCR + image analysis
-│       │   └── prompt_templates.py   # Medical prompt engineering + RAG
-│       ├── memory/
-│       │   ├── vector_store.py       # ChromaDB vector search
-│       │   └── document_processor.py # PDF, image, text processing
-│       ├── profile/
-│       │   └── profile_manager.py    # Health archive + entity extraction
-│       └── telegram/
-│           └── bot.py                # Telegram bot bridge
-│
-├── frontend/                         # Flutter/Dart Frontend
-│   ├── pubspec.yaml                  # Flutter dependencies
-│   ├── analysis_options.yaml         # Linter rules
-│   ├── android/                      # Android build config
-│   ├── assets/                       # Fonts, icons, images, models
-│   └── lib/
-│       ├── main.dart                 # App entry point
-│       ├── core/
-│       │   ├── constants/            # API config, UI constants
-│       │   └── theme/                # Dark theme, glassmorphism
-│       ├── features/
-│       │   ├── chat/                 # Chat BLoC, UI, message bubbles
-│       │   ├── explainability/       # "Why?" document citation drawer
-│       │   ├── history/              # Chat history with search
-│       │   └── profile/              # Health archive UI
-│       ├── screens/                  # Documents, Health Archive, Model Init, PC Connection
-│       ├── services/                 # AI, PC Backend, Health Archive, Model Manager
-│       └── widgets/                  # AI Memory Widget, Privacy Badge
-│
-├── .env.example                      # Environment config template
-├── .gitignore                        # Git ignore rules
-├── LICENSE                           # MIT License
-└── README.md                         # This file
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 | Requirement | Version | Notes |
 |---|---|---|
 | **Python** | 3.10+ | Backend server |
 | **Flutter** | 3.16+ | Frontend app |
 | **CUDA GPU** | 4GB+ VRAM | RTX 3050 or better recommended |
 | **RAM** | 8GB+ | 16GB recommended |
-| **Hugging Face Account** | — | For downloading Gemma model (free) |
 
-### Step 1: Clone the Repository
-
+### Step 1: Setup & Run the Backend
 ```bash
 git clone <your-repo-url>
-cd "med ai"
-```
-
-### Step 2: Setup & Run the Backend
-
-```bash
-cd backend
+cd "med ai/backend"
 
 # Create and activate virtual environment
 python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Linux/Mac:
-# source venv/bin/activate
+.\venv\Scripts\activate # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy environment config
+# Copy environment config & add token if needed
 copy .env.example .env
-# Edit .env and add your Hugging Face token:
-#   MED_ASSIST_APP_HF_TOKEN=hf_your_token_here
 
-# Start the server
-python main.py --debug
+# Start the server (allow remote connections)
+python -m uvicorn src.api.server:app --reload --host 0.0.0.0 --port 8000
 ```
+> The server will expose the new `/chat/consultation` endpoints for the Multi-Agent engine!
 
-The server starts at `http://127.0.0.1:8000`. On first run, it downloads Gemma-2-2B (~1.5GB) from Hugging Face. If the model fails to load, the server automatically falls back to a **MockLLMService** so you can develop the frontend.
-
-> **Tip**: To allow connections from your phone, use `--host 0.0.0.0`:
-> ```bash
-> python main.py --host 0.0.0.0 --port 8000 --debug
-> ```
-
-### Step 3: Setup & Run the Frontend
+### Step 2: Setup & Run the Frontend
+Because this app now uses local ML OCR and Health packages, running on a physical device is highly recommended.
 
 ```bash
-cd frontend
+cd "../frontend"
 
 # Get Flutter dependencies
 flutter pub get
 
-# Run on Windows desktop
-flutter run -d windows
-
 # Run on Android (phone connected via USB)
-flutter run -d <device-id>
-
-# Build Android APK
-flutter build apk --debug
+flutter run
 ```
 
-### Step 4: Connect Phone to PC
-
-1. Ensure both devices are on the **same WiFi network** (or use phone hotspot).
+### Step 3: Connect Phone to PC
+1. Ensure both devices are on the **same WiFi network**.
 2. Open the app on your phone → Go to **PC Connection** screen.
 3. Enter your PC's local IP address (e.g., `192.168.1.100`) and port `8000`.
-4. Tap **Connect** — the app tests the connection automatically.
-
-> **Firewall**: Make sure Windows Firewall allows inbound connections on port `8000`.
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/chat` | Send a message, get AI response |
-| `POST` | `/chat/agentic` | Agentic chat with tool calls & multi-step reasoning |
-| `POST` | `/chat/session/clear` | Clear server-side conversation memory |
-| `GET`  | `/chat/session/info` | Get session info (debug) |
-| `POST` | `/explain` | Explain how AI reached its conclusion ("Why?" button) |
-| `GET`  | `/profile` | Get digital health archive |
-| `POST` | `/profile` | Update health archive |
-| `POST` | `/upload` | Upload a medical document (PDF, image, text) |
-| `POST` | `/context` | Search stored documents for relevant context |
-| `GET`  | `/documents` | List all stored documents |
-| `GET`  | `/health` | System health check (model, GPU, memory status) |
-| `POST` | `/memory/cleanup` | Remove old documents past retention period |
-
-When `--debug` is enabled, interactive API docs are available at `/docs` (Swagger UI).
 
 ## ⚙️ Configuration
-
 All settings are managed via environment variables or `.env` file. See [.env.example](.env.example) for all options:
 
 | Variable | Default | Description |
 |---|---|---|
 | `MED_ASSIST_APP_HOST` | `127.0.0.1` | Server bind address |
-| `MED_ASSIST_APP_PORT` | `8000` | Server port |
-| `MED_ASSIST_APP_HF_TOKEN` | — | Hugging Face token (for Gemma download) |
-| `MED_ASSIST_APP_MAX_TOKENS` | `1024` | Max response tokens |
-| `MED_ASSIST_APP_TEMPERATURE` | `0.7` | Model temperature |
 | `MED_ASSIST_APP_USE_GPU` | `true` | Enable GPU acceleration |
-| `MED_ASSIST_APP_EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence embedding model |
 | `MED_ASSIST_APP_MEMORY_RETENTION_DAYS` | `30` | Document retention period |
-| `MED_ASSIST_APP_TELEGRAM_BOT_TOKEN` | — | Optional Telegram bot token |
-
-## 🔧 Troubleshooting
-
-| Problem | Solution |
-|---|---|
-| `CUDA out of memory` | Close other GPU apps. Gemma-2B with 4-bit quantization needs ~2GB VRAM. |
-| `Model download fails` | Check `MED_ASSIST_APP_HF_TOKEN` in `.env`. Accept the Gemma license on Hugging Face. |
-| `Phone can't connect` | Verify both devices on same network. Check Windows Firewall port 8000. Use `--host 0.0.0.0`. |
-| `MockLLMService active` | Normal if PyTorch/CUDA not installed. Install torch: `pip install torch` |
-| `flutter pub get fails` | Run `flutter doctor` and resolve issues. Ensure Dart SDK ≥3.2.0. |
 
 ## 🧪 GitHub Actions CI
-
-This project includes a CI workflow (`.github/workflows/ci.yml`) that:
-
-1. **Backend**: Checks Python syntax, validates imports
-2. **Frontend**: Runs `flutter analyze` for static analysis
-
-See the [CI workflow file](.github/workflows/ci.yml) for details.
+This project includes a CI workflow (`.github/workflows/ci.yml`) that checks Python syntax and runs `flutter analyze` for static analysis.
 
 ## 📄 License
-
 This project is licensed under the **MIT License** — see [LICENSE](LICENSE).
 
 ## ⚠️ Medical Disclaimer
-
 **Med Assist App is a development prototype and is NOT intended for actual medical use.**
-
 - All AI outputs are informational only and may be inaccurate.
 - Never use this application as a substitute for professional medical advice.
 - Always consult qualified healthcare professionals for medical decisions.
