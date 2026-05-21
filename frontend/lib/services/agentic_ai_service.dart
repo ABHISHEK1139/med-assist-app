@@ -139,6 +139,52 @@ class AgenticAIService {
     );
   }
   
+  /// Send a consultation request (Multi-Agent Debate)
+  Future<ConsultationResult> consultation(String message) async {
+    if (!_isInitialized) {
+      throw Exception('AgenticAIService not initialized');
+    }
+    
+    final stopwatch = Stopwatch()..start();
+    final healthContext = await _buildHealthContext();
+    
+    print('🏛️ Starting Multi-Agent Consultation...');
+    
+    try {
+      final requestBody = {
+        'message': message,
+        'health_context': healthContext,
+      };
+      
+      final apiResponse = await _dio.post(
+        '$serverUrl/chat/consultation',
+        data: requestBody,
+      );
+      
+      if (apiResponse.statusCode == 200) {
+        final data = apiResponse.data;
+        
+        final reasoningSteps = (data['reasoning_steps'] as List<dynamic>?)
+            ?.map((step) => ConsultationStep(
+                  agent: step['agent'] ?? '',
+                  thought: step['thought'] ?? '',
+                ))
+            .toList() ?? [];
+            
+        return ConsultationResult(
+          response: data['response'] ?? '',
+          reasoningSteps: reasoningSteps,
+          totalTimeMs: data['inference_time_ms']?.round() ?? stopwatch.elapsedMilliseconds,
+        );
+      } else {
+        throw Exception('API error: ${apiResponse.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error in consultation: $e');
+      throw Exception('Consultation failed: $e');
+    }
+  }
+
   /// Build health context from phone's database
   Future<Map<String, dynamic>> _buildHealthContext() async {
     final symptoms = await _contextBuilder.getActiveSymptoms();
@@ -379,6 +425,28 @@ class ToolResult {
     'tool': tool,
     'success': success,
     'data': data,
-    'error': error,
   };
+}
+
+/// Result of a multi-agent consultation
+class ConsultationResult {
+  final String response;
+  final List<ConsultationStep> reasoningSteps;
+  final int totalTimeMs;
+  
+  ConsultationResult({
+    required this.response,
+    required this.reasoningSteps,
+    required this.totalTimeMs,
+  });
+}
+
+class ConsultationStep {
+  final String agent;
+  final String thought;
+  
+  ConsultationStep({
+    required this.agent,
+    required this.thought,
+  });
 }

@@ -262,6 +262,42 @@ class _ChatPageState extends State<ChatPage> {
           tooltip: 'Health Archive',
         ),
         
+        // Consultation Mode button
+        BlocBuilder<ChatBloc, ChatState>(
+          builder: (context, state) {
+            return IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: state.isConsultationMode 
+                        ? [Colors.orange, Colors.orange.shade700]
+                        : [Colors.grey.shade700, Colors.grey.shade800],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.psychology,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+              onPressed: () {
+                context.read<ChatBloc>().add(const ToggleConsultationMode());
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.isConsultationMode 
+                        ? 'Consultation Mode Disabled' 
+                        : 'Consultation Mode Enabled: Multi-Agent Debate'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              tooltip: 'Consultation Mode',
+            );
+          },
+        ),
+        
         // Privacy Badge
         const Padding(
           padding: EdgeInsets.only(right: 8),

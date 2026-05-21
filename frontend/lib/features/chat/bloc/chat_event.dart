@@ -109,3 +109,8 @@ class ChatMessagesLoaded extends ChatEvent {
   @override
   List<Object?> get props => [messages];
 }
+
+/// Toggle multi-agent consultation mode
+class ToggleConsultationMode extends ChatEvent {
+  const ToggleConsultationMode();
+}

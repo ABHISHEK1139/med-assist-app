@@ -36,6 +36,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ExplanationRequested>(_onExplanationRequested);
     on<ChatCleared>(_onChatCleared);
     on<ChatMessagesLoaded>(_onMessagesLoaded);
+    on<ToggleConsultationMode>(_onToggleConsultationMode);
+  }
+  
+  void _onToggleConsultationMode(
+    ToggleConsultationMode event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(
+      isConsultationMode: !state.isConsultationMode,
+    ));
   }
   
   Future<void> _onInitialized(
@@ -138,7 +148,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       ));
       
       // Use agentic chat for smart responses
-      final response = await _medAssistApp.chat(event.message);
+      final response = state.isConsultationMode 
+          ? await _medAssistApp.runConsultation(event.message)
+          : await _medAssistApp.chat(event.message);
       
       if (_isCancelled) {
         _handleCancellation(emit, reasoningSteps);

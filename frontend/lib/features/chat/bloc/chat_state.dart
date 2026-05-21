@@ -198,6 +198,7 @@ class ChatState extends Equatable {
   final List<ReasoningStep> currentReasoning;  // NEW: Live reasoning steps
   final bool isCancelled;  // NEW: Was generation cancelled
   final String? editingMessageId;  // NEW: Message being edited
+  final bool isConsultationMode; // NEW: Multi-agent debate mode
   
   const ChatState({
     required this.status,
@@ -211,6 +212,7 @@ class ChatState extends Equatable {
     this.currentReasoning = const [],
     this.isCancelled = false,
     this.editingMessageId,
+    this.isConsultationMode = false,
   });
   
   /// Initial state
@@ -223,6 +225,7 @@ class ChatState extends Equatable {
       gpuEnabled: false,
       isUploadingDocument: false,
       currentReasoning: [],
+      isConsultationMode: false,
     );
   }
   
@@ -239,6 +242,7 @@ class ChatState extends Equatable {
     List<ReasoningStep>? currentReasoning,
     bool? isCancelled,
     String? editingMessageId,
+    bool? isConsultationMode,
   }) {
     return ChatState(
       status: status ?? this.status,
@@ -252,6 +256,7 @@ class ChatState extends Equatable {
       currentReasoning: currentReasoning ?? this.currentReasoning,
       isCancelled: isCancelled ?? this.isCancelled,
       editingMessageId: editingMessageId,
+      isConsultationMode: isConsultationMode ?? this.isConsultationMode,
     );
   }
   
@@ -268,6 +273,7 @@ class ChatState extends Equatable {
     currentReasoning,
     isCancelled,
     editingMessageId,
+    isConsultationMode,
   ];
   
   /// Whether the AI is currently processing

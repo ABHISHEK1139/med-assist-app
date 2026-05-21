@@ -288,6 +288,19 @@ class AgenticChatResponse(BaseModel):
     image_text_extracted: bool = False  # Was text extracted from image?
 
 
+class ConsultationReasoningStep(BaseModel):
+    agent: str
+    thought: str
+
+class ConsultationRequest(BaseModel):
+    message: str
+    health_context: Dict[str, Any] = {}
+
+class ConsultationResponse(BaseModel):
+    response: str
+    reasoning_steps: List[ConsultationReasoningStep] = []
+    inference_time_ms: float
+
 # ============================================================================
 # Background Tasks
 # ============================================================================
@@ -579,6 +592,37 @@ async def agentic_chat(request: AgenticChatRequest):
         round_number=request.round_number + 1,
         inference_time_ms=round(inference_time, 2),
         current_time=current_time.isoformat()
+    )
+
+
+@router.post("/chat/consultation", response_model=ConsultationResponse)
+async def run_consultation_room(request: ConsultationRequest):
+    """
+    Runs the multi-agent consultation room.
+    Passes the query through 3 distinct AI personas (Diagnostician, Pharmacist, Lead Physician).
+    """
+    llm = get_llm_service()
+    if not llm:
+        raise HTTPException(status_code=503, detail="LLM service not initialized")
+        
+    start_time = time.time()
+    
+    from ..inference.multi_agent_engine import MultiAgentEngine
+    engine = MultiAgentEngine(llm)
+    
+    final_response, reasoning_steps = await engine.run_consultation(
+        user_message=request.message,
+        health_context=request.health_context
+    )
+    
+    inference_time = (time.time() - start_time) * 1000
+    
+    steps = [ConsultationReasoningStep(**step) for step in reasoning_steps]
+    
+    return ConsultationResponse(
+        response=final_response,
+        reasoning_steps=steps,
+        inference_time_ms=inference_time
     )
 
 

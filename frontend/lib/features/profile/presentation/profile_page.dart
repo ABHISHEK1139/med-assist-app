@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/health_archive/health_archive.dart';
 import '../../../services/health_archive/health_context_builder.dart';
+import '../../../services/caregiver_export_service.dart';
 
 /// Digital Health Archive - LOCAL DATA
 /// 
@@ -90,7 +91,24 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         centerTitle: true,
         actions: [
           IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Export for Caregiver',
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Generating PDF...')),
+              );
+              try {
+                await CaregiverExportService().exportHealthProfileToPdf();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error generating PDF: $e'), backgroundColor: AppTheme.error),
+                );
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Data',
             onPressed: _loadLocalData,
           ),
         ],

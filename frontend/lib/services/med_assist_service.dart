@@ -119,6 +119,23 @@ Make sure phone and laptop are on same WiFi!''';
     return result.response;
   }
   
+  /// Run a multi-agent consultation
+  Future<String> runConsultation(String message) async {
+    if (!_isInitialized) {
+      final initialized = await initialize();
+      if (!initialized) {
+        return 'Error: $_initError';
+      }
+    }
+    
+    if (!_backendService.isConnected) {
+      return '❌ Not connected to PC.';
+    }
+    
+    final result = await _backendService.runConsultation(message);
+    return result.response;
+  }
+  
   /// Simple chat without agentic reasoning (faster but less smart)
   Future<String> simpleChat(String message) async {
     return chat(message, useAgentic: false);

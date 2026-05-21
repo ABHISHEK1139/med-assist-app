@@ -449,6 +449,63 @@ Note: This is for informational purposes only, not medical advice.
     
     // No need to track history client-side - server remembers via session_id!
     
+
+
+  /// Run multi-agent consultation
+  Future<PCBackendResponse> runConsultation(String message) async {
+    if (!_isInitialized) {
+      await initialize();
+    }
+    
+    if (!_isConnected) {
+      return PCBackendResponse(
+        response: '❌ Not connected to PC',
+        error: 'Not connected',
+      );
+    }
+    
+    final stopwatch = Stopwatch()..start();
+    final healthContext = await _buildHealthContextForAgentic();
+    
+    try {
+      final requestBody = {
+        'message': message,
+        'health_context': healthContext,
+      };
+      
+      final apiResponse = await _dio.post(
+        '$serverUrl/chat/consultation',
+        data: requestBody,
+      );
+      
+      if (apiResponse.statusCode == 200) {
+        final data = apiResponse.data;
+        
+        final reasoningSteps = (data['reasoning_steps'] as List<dynamic>?) ?? [];
+        var response = data['response'] ?? '';
+        
+        if (reasoningSteps.isNotEmpty) {
+          response = "**Multi-Agent Debate:**\n" + 
+                     reasoningSteps.map((s) => "• **${s['agent']}**: ${s['thought']}").join('\n') +
+                     "\n\n**Final Conclusion:**\n" + response;
+        }
+        
+        return PCBackendResponse(
+          response: response,
+          processingTimeMs: stopwatch.elapsedMilliseconds,
+        );
+      } else {
+        throw Exception('API error: ${apiResponse.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error in consultation: $e');
+      return PCBackendResponse(
+        response: 'Sorry, the consultation failed: $e',
+        error: e.toString(),
+      );
+    }
+  }
+    
     return PCBackendResponse(
       response: processed.response,
       symptomsExtracted: extractedCount,

@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/glass_container.dart';
 import '../bloc/chat_bloc.dart';
+import '../../../services/ocr_service.dart';
 
 /// Multimodal Input Bar
 /// 
@@ -251,6 +252,76 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
     }
   }
 
+  /// Capture photo for Pill OCR
+  Future<void> _captureForOCR() async {
+    setState(() => _isExpanded = false);
+    
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Extracting text from pill bottle...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        final text = await OCRService().extractTextFromImage(image.path);
+        
+        if (!mounted) return;
+        
+        if (text.trim().isNotEmpty) {
+          final currentText = _controller.text;
+          _controller.text = currentText.isNotEmpty 
+              ? "$currentText\n\nScanned Medication Label:\n$text" 
+              : "What can you tell me about this medication label?\n\n$text";
+          
+          // Move cursor to the end
+          _controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: _controller.text.length),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No text found in the image. Please try again with better lighting.'),
+            ),
+          );
+        }
+        
+        // Attach the image so the backend gets visual context too
+        final fileBytes = await File(image.path).readAsBytes();
+        setState(() {
+          _pendingAttachment = PendingAttachment(
+            fileName: 'ocr_scan_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            fileBytes: fileBytes,
+            docType: 'prescription',
+            filePath: image.path,
+          );
+        });
+        
+        _focusNode.requestFocus();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('OCR Camera error: $e'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ChatBloc, ChatState>(
@@ -448,6 +519,16 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
                 onTap: () => _capturePhoto('radiology'),
               ),
               const SizedBox(width: 8),
+              _buildFileTypeChip(
+                icon: Icons.medication_outlined,
+                label: 'Pill OCR',
+                onTap: _captureForOCR,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
               _buildFileTypeChip(
                 icon: Icons.photo_library_outlined,
                 label: 'Gallery',
