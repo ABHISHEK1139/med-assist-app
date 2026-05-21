@@ -1,0 +1,75 @@
+name: Med Assist App CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-lint:
+    name: Backend — Python Lint & Import Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn pydantic pydantic-settings python-dotenv loguru
+          pip install chromadb sentence-transformers
+          pip install pypdf Pillow python-multipart
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile main.py
+          python -m py_compile src/config.py
+          python -m py_compile src/api/server.py
+          python -m py_compile src/api/routes.py
+          python -m py_compile src/inference/prompt_templates.py
+          python -m py_compile src/memory/vector_store.py
+          python -m py_compile src/memory/document_processor.py
+          python -m py_compile src/profile/profile_manager.py
+
+      - name: Validate imports
+        run: |
+          cd ..
+          python -c "
+          import sys
+          sys.path.insert(0, 'backend')
+          from src.config import settings
+          print('✅ Config imports OK')
+          from src.inference.prompt_templates import MedicalPromptTemplates, AnalysisType
+          print('✅ Prompt templates imports OK')
+          "
+
+  frontend-analyze:
+    name: Frontend — Flutter Analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos

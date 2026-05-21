@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+venv/
+env/
+ENV/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs and runtime data
+*.log
+backend/logs/
+logs/
+
+# Local data and databases
+*.sqlite3
+backend/memory/
+backend/data/
+data/
+
+# Models and large artifacts
+backend/models/
+*.task
+*.safetensors
+*.bin
+*.apk
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/local.properties
+/build/
+
+# IDE/editor
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+.DS_Store

@@ -1,0 +1,59 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.example.med_assist_app"
+    compileSdk = 35
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId = "com.med_assist_app.app"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+        
+        // Enable large heap for LLM model loading
+        multiDexEnabled = true
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.debug
+            minifyEnabled = false
+            shrinkResources = false
+        }
+    }
+    
+    // Allow large model files - memory mapped
+    aaptOptions {
+        noCompress "task", "tflite", "litert", "litertlm"
+    }
+}
+
+dependencies {
+    // MediaPipe LLM Inference SDK - Latest version with crash fixes
+    // Updated from 0.10.14 to 0.10.29 (Sep 2025) - fixes SIGSEGV crashes
+    // See: https://github.com/google-ai-edge/mediapipe-samples/issues/434
+    implementation 'com.google.mediapipe:tasks-genai:0.10.29'
+    
+    // For large model handling
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
+
+flutter {
+    source = "../.."
+}

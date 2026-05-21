@@ -1,0 +1,33 @@
+# Med Assist App Backend Dependencies
+# MediaPipe-based local medical AI inference
+
+# Core AI Inference
+mediapipe>=0.10.9              # LLM Inference API (same API as Android)
+
+# Vector Database for RAG Memory
+chromadb>=0.4.22               # Local vector store (mirrors ObjectBox on mobile)
+sentence-transformers>=2.3.0   # Document embeddings
+
+# REST API Server
+fastapi>=0.109.0               # High-performance async API
+uvicorn[standard]>=0.27.0      # ASGI server
+python-multipart>=0.0.6        # File upload support
+
+# Document Processing
+pypdf>=4.0.0                   # PDF text extraction
+Pillow>=10.2.0                 # Image handling
+python-magic-bin>=0.4.14       # File type detection (Windows)
+
+# Utilities
+pydantic>=2.5.0                # Data validation
+pydantic-settings>=2.1.0       # Configuration management
+python-dotenv>=1.0.0           # Environment variables
+loguru>=0.7.2                  # Better logging
+
+# LLM / ML Dependencies
+torch>=2.2.0                   # PyTorch for local inference
+transformers>=4.38.0           # Hugging Face transformers
+bitsandbytes>=0.42.0           # 4-bit quantization for GPU loading
+
+# Integrations
+python-telegram-bot>=20.8      # Telegram bot bridge
