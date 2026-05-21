@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 import 'dart:io';
 
 import '../../../core/theme/app_theme.dart';
@@ -45,11 +47,73 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
   bool _hasText = false;  // Track text state for send button
   PendingAttachment? _pendingAttachment; // Store file until user sends
   
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
+  String _lastRecognizedWords = '';
+  
   @override
   void initState() {
     super.initState();
     // Listen for text changes to update send button state
     _controller.addListener(_onTextChanged);
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speechToText.initialize(
+      onError: (val) => print('Speech Error: $val'),
+      onStatus: (val) {
+        if (val == 'done' || val == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+    );
+    if (mounted) setState(() {});
+  }
+
+  void _startListening() async {
+    if (!_speechEnabled) return;
+    
+    // Clear any previous temporary dictation
+    _lastRecognizedWords = '';
+    
+    await _speechToText.listen(
+      onResult: _onSpeechResult,
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 5),
+    );
+    if (mounted) setState(() => _isListening = true);
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    if (mounted) setState(() => _isListening = false);
+  }
+
+  void _onSpeechResult(SpeechRecognitionResult result) {
+    if (mounted) {
+      setState(() {
+        // Find what was just recognized in this session
+        final newWords = result.recognizedWords;
+        
+        // Remove the previous _lastRecognizedWords from the controller if we appended it
+        final currentText = _controller.text;
+        if (currentText.endsWith(_lastRecognizedWords) && _lastRecognizedWords.isNotEmpty) {
+           _controller.text = currentText.substring(0, currentText.length - _lastRecognizedWords.length);
+        }
+        
+        // Append the new recognized string
+        final separator = _controller.text.isEmpty || _controller.text.endsWith(' ') ? '' : ' ';
+        _controller.text = _controller.text + separator + newWords;
+        
+        // Move cursor to end
+        _controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: _controller.text.length));
+            
+        _lastRecognizedWords = separator + newWords;
+      });
+    }
   }
   
   void _onTextChanged() {
@@ -227,6 +291,13 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
                     ),
                     
                     const SizedBox(width: 8),
+                    
+                    // Mic button (if speech is enabled and we aren't typing heavily)
+                    if (_speechEnabled && !(_hasText && !_isListening))
+                      _buildMicButton(),
+                    
+                    if (_speechEnabled && !(_hasText && !_isListening))
+                      const SizedBox(width: 8),
                     
                     // Send button
                     _buildSendButton(state),
@@ -580,6 +651,28 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
         ),
         tooltip: 'Send message',
       ),
+    );
+  }
+
+  Widget _buildMicButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _isListening ? AppTheme.error.withOpacity(0.2) : AppTheme.darkCard,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: _isListening ? AppTheme.error : AppTheme.darkBorder,
+        ),
+      ),
+      child: IconButton(
+        onPressed: _speechToText.isNotListening ? _startListening : _stopListening,
+        icon: Icon(
+          _isListening ? Icons.mic : Icons.mic_none,
+          color: _isListening ? AppTheme.error : AppTheme.textSecondaryDark,
+        ),
+        tooltip: 'Hold to speak',
+      ).animate(target: _isListening ? 1 : 0)
+       .scaleXY(begin: 1.0, end: 1.1, duration: 200.ms)
+       .tint(color: AppTheme.error.withOpacity(0.5)),
     );
   }
 }

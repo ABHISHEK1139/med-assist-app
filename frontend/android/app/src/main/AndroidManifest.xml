@@ -15,6 +15,9 @@
     <!-- Camera permission for medical image capture -->
     <uses-permission android:name="android.permission.CAMERA"/>
     
+    <!-- Microphone permission for Speech-to-Text voice input -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    
     <application
         android:label="Med Assist App"
         android:name="${applicationName}"
