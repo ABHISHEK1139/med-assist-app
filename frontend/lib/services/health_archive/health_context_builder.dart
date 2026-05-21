@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'database.dart';
 import 'models.dart';
 import 'health_archive_service.dart';
+import '../wearable_sync_service.dart';
 
 /// Health Context Builder
 /// 
@@ -17,6 +18,7 @@ import 'health_archive_service.dart';
 /// - Smart filtering of what to send vs what to keep local
 class HealthContextBuilder {
   final HealthArchiveService _archiveService;
+  final WearableSyncService _wearableSync = WearableSyncService();
   Database? _db;
   
   HealthContextBuilder(this._archiveService);
@@ -162,6 +164,7 @@ class HealthContextBuilder {
     final symptoms = await getActiveSymptoms();
     final reports = await getRecentReports(days: 14);
     final profile = await _archiveService.getFullProfile();
+    final wearableData = await _wearableSync.fetchTodayMetrics();
     
     return ChatContextPacket(
       currentMessage: currentMessage,
@@ -184,6 +187,7 @@ class HealthContextBuilder {
         name: r.reportName,
         keyFindings: r.keyFindings,
       )).toList(),
+      wearableData: wearableData.isNotEmpty ? wearableData : null,
     );
   }
   
@@ -448,6 +452,7 @@ class ChatContextPacket {
   final List<String> currentMedications;
   final List<String> allergies;
   final List<ReportReference> recentReports;
+  final Map<String, dynamic>? wearableData;
   
   ChatContextPacket({
     required this.currentMessage,
@@ -456,6 +461,7 @@ class ChatContextPacket {
     required this.currentMedications,
     required this.allergies,
     required this.recentReports,
+    this.wearableData,
   });
   
   Map<String, dynamic> toJson() => {
@@ -466,6 +472,7 @@ class ChatContextPacket {
       'current_medications': currentMedications,
       'allergies': allergies,
       'recent_reports': recentReports.map((r) => r.toJson()).toList(),
+      if (wearableData != null) 'wearables': wearableData,
     },
   };
   
@@ -498,6 +505,19 @@ class ChatContextPacket {
         buffer.write('- ${r.name}');
         if (r.keyFindings != null) buffer.write(': ${r.keyFindings}');
         buffer.writeln();
+      }
+    }
+    
+    if (wearableData != null) {
+      buffer.writeln('\nToday\'s Vitals & Activity:');
+      if (wearableData!.containsKey('steps_today')) {
+        buffer.writeln('- Steps: ${wearableData!['steps_today']}');
+      }
+      if (wearableData!.containsKey('avg_heart_rate')) {
+        buffer.writeln('- Avg Heart Rate: ${wearableData!['avg_heart_rate']} bpm');
+      }
+      if (wearableData!.containsKey('sleep_hours_last_night')) {
+        buffer.writeln('- Sleep last night: ${wearableData!['sleep_hours_last_night']} hrs');
       }
     }
     

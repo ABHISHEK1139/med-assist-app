@@ -22,7 +22,7 @@ dependencies:
   hive_flutter: ^1.1.0
   path_provider: ^2.1.2
   sqflite: ^2.3.0  # For structured health timeline
-  permission_handler: ^11.3.0  # For persistent storage access
+  permission_handler: ^11.3.1  # For persistent storage access
   shared_preferences: ^2.2.2  # For saving PC connection settings
   
   # On-Device AI - MediaPipe LLM
@@ -41,6 +41,7 @@ dependencies:
   # Development Tools
   device_preview: ^1.1.0
   speech_to_text: ^7.4.0
+  health: ^13.1.3
 
 dev_dependencies:
   flutter_test:
