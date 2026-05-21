@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import 'health_archive/health_archive_service.dart';
 import 'health_archive/models.dart';
+import 'health_archive/health_context_builder.dart';
 
 class CaregiverExportService {
   static final CaregiverExportService _instance = CaregiverExportService._internal();
@@ -14,8 +15,10 @@ class CaregiverExportService {
 
   Future<void> exportHealthProfileToPdf() async {
     final pdf = pw.Document();
-    final profile = await HealthArchiveService().getProfile();
-    final symptoms = await HealthArchiveService().getActiveSymptoms();
+    final profile = await HealthArchiveService().getFullProfile();
+    final contextBuilder = HealthContextBuilder(HealthArchiveService());
+    await contextBuilder.initialize();
+    final symptoms = await contextBuilder.getActiveSymptoms();
 
     pdf.addPage(
       pw.MultiPage(
@@ -32,20 +35,8 @@ class CaregiverExportService {
             pw.SizedBox(height: 20),
 
             _buildSection(
-              title: 'Basic Information',
-              content: [
-                'Name: ${profile.name}',
-                'Age: ${profile.age}',
-                'Gender: ${profile.gender}',
-                'Blood Type: ${profile.bloodType}',
-              ],
-            ),
-            
-            pw.SizedBox(height: 15),
-
-            _buildSection(
               title: 'Chronic Conditions',
-              content: profile.conditions.map((c) => '- ${c.name} (Diagnosed: ${c.diagnosedYear})').toList(),
+              content: profile.conditions.map((c) => '- ${c.name} (Onset: ${c.onsetYear ?? "Unknown"})').toList(),
             ),
 
             pw.SizedBox(height: 15),
@@ -59,14 +50,14 @@ class CaregiverExportService {
 
             _buildSection(
               title: 'Allergies',
-              content: profile.allergies.map((a) => '- ${a.allergen} (${a.severity.name})').toList(),
+              content: profile.allergies.map((a) => '- ${a.allergen} (${a.severity?.name ?? "Unknown"})').toList(),
             ),
             
             pw.SizedBox(height: 15),
 
             _buildSection(
               title: 'Recent Active Symptoms',
-              content: symptoms.map((s) => '- ${s.symptom} (${s.severity.name}, since ${s.startDate.toString().split(' ')[0]})').toList(),
+              content: symptoms.map((s) => '- ${s.name} (${s.severity.name}, since ${s.onsetDate.toString().split(' ')[0]})').toList(),
             ),
           ];
         },

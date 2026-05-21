@@ -449,7 +449,14 @@ Note: This is for informational purposes only, not medical advice.
     
     // No need to track history client-side - server remembers via session_id!
     
-
+    return PCBackendResponse(
+      response: processed.response,
+      symptomsExtracted: extractedCount,
+      processingTimeMs: stopwatch.elapsedMilliseconds,
+      aiCommandsExecuted: processed.executedCommands.length + toolCalls.length,
+      aiCommandsPending: processed.pendingCommands.length,
+    );
+  }
 
   /// Run multi-agent consultation
   Future<PCBackendResponse> runConsultation(String message) async {
@@ -504,15 +511,6 @@ Note: This is for informational purposes only, not medical advice.
         error: e.toString(),
       );
     }
-  }
-    
-    return PCBackendResponse(
-      response: processed.response,
-      symptomsExtracted: extractedCount,
-      processingTimeMs: stopwatch.elapsedMilliseconds,
-      aiCommandsExecuted: processed.executedCommands.length + toolCalls.length,
-      aiCommandsPending: processed.pendingCommands.length,
-    );
   }
   
   /// Load chat session from app's history into server memory
