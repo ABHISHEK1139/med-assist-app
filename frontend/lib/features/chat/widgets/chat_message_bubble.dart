@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/glass_container.dart';
 import '../bloc/chat_bloc.dart';
 import 'reasoning_steps_widget.dart';
 
@@ -135,44 +136,34 @@ class ChatMessageBubble extends StatelessWidget {
   
   Widget _buildBubble(BuildContext context) {
     final isUser = message.isUser;
+    final color = isUser
+        ? AppTheme.primary
+        : message.isError
+            ? AppTheme.error
+            : message.isExplanation
+                ? AppTheme.accent
+                : AppTheme.darkCard;
     
     return Container(
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isUser
-            ? AppTheme.primary.withOpacity(0.15)
-            : message.isError
-                ? AppTheme.error.withOpacity(0.1)
-                : message.isExplanation
-                    ? AppTheme.accent.withOpacity(0.1)
-                    : AppTheme.darkCard,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(isUser ? 16 : 4),
-          bottomRight: Radius.circular(isUser ? 4 : 16),
-        ),
-        border: Border.all(
-          color: isUser
-              ? AppTheme.primary.withOpacity(0.3)
-              : message.isError
-                  ? AppTheme.error.withOpacity(0.3)
-                  : message.isExplanation
-                      ? AppTheme.accent.withOpacity(0.3)
-                      : AppTheme.darkBorder,
-          width: 1,
-        ),
-      ),
-      child: SelectableText(
-        message.content,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: message.isError
-              ? AppTheme.error
-              : AppTheme.textPrimaryDark,
-          height: 1.5,
+      child: GlassContainer(
+        padding: const EdgeInsets.all(14),
+        opacity: isUser ? 0.25 : 0.15,
+        blur: 10,
+        color: color,
+        borderRadius: 16,
+        // Optional: Custom radius per corner isn't easily supported by basic GlassContainer,
+        // but we can live with symmetrical radius or update GlassContainer if needed.
+        child: SelectableText(
+          message.content,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: message.isError
+                ? AppTheme.error
+                : AppTheme.textPrimaryDark,
+            height: 1.5,
+          ),
         ),
       ),
     );

@@ -9,6 +9,7 @@ import 'dart:io';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/widgets/glass_container.dart';
 import '../bloc/chat_bloc.dart';
 
 /// Multimodal Input Bar
@@ -254,18 +255,17 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
   Widget build(BuildContext context) {
     return BlocBuilder<ChatBloc, ChatState>(
       builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.darkSurface,
-            border: Border(
-              top: BorderSide(color: AppTheme.darkBorder.withOpacity(0.5)),
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: GlassContainer(
+              padding: const EdgeInsets.all(8),
+              borderRadius: 30,
+              opacity: 0.15,
+              blur: 15,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // Upload progress indicator
                 if (state.isUploadingDocument)
                   _buildUploadProgress(state.uploadProgress ?? 'Uploading...'),
@@ -303,7 +303,8 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
                     _buildSendButton(state),
                   ],
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -573,11 +574,8 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
   Widget _buildAttachButton() {
     return Container(
       decoration: BoxDecoration(
-        color: _isExpanded ? AppTheme.primary.withOpacity(0.1) : AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _isExpanded ? AppTheme.primary : AppTheme.darkBorder,
-        ),
+        color: _isExpanded ? AppTheme.primary.withOpacity(0.2) : AppTheme.darkCard.withOpacity(0.5),
+        shape: BoxShape.circle,
       ),
       child: GestureDetector(
         onTap: () {
@@ -606,23 +604,43 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
   }
   
   Widget _buildTextInput(ChatState state) {
-    return TextField(
-      controller: _controller,
-      focusNode: _focusNode,
-      enabled: state.canSendMessage,
-      maxLines: 4,
-      minLines: 1,
-      textInputAction: TextInputAction.send,
-      onSubmitted: (_) => _sendMessage(),
-      decoration: InputDecoration(
-        hintText: state.isThinking
-            ? 'Med Assist App is thinking...'
-            : _pendingAttachment != null
-                ? 'Add a message about this file (optional)...'
-                : 'Ask a health question...',
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.darkCard.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        enabled: state.canSendMessage,
+        maxLines: 4,
+        minLines: 1,
+        textInputAction: TextInputAction.send,
+        onSubmitted: (_) => _sendMessage(),
+        style: const TextStyle(fontSize: 15),
+        decoration: InputDecoration(
+          hintText: state.isThinking
+              ? 'AI is thinking...'
+              : _pendingAttachment != null
+                  ? 'Add a message...'
+                  : 'Ask a health question...',
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          fillColor: Colors.transparent, // Let glass show through
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -635,19 +653,15 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
     
     return Container(
       decoration: BoxDecoration(
-        gradient: hasContent
-            ? AppTheme.primaryGradient
-            : null,
-        color: !hasContent ? AppTheme.darkCard : null,
-        borderRadius: BorderRadius.circular(12),
+        gradient: hasContent ? AppTheme.primaryGradient : null,
+        color: !hasContent ? AppTheme.darkCard.withOpacity(0.5) : null,
+        shape: BoxShape.circle,
       ),
       child: IconButton(
         onPressed: canSend ? _sendMessage : null,
         icon: Icon(
-          Icons.send_rounded,
-          color: hasContent
-              ? Colors.white
-              : AppTheme.textSecondaryDark,
+          Icons.arrow_upward_rounded,
+          color: hasContent ? Colors.white : AppTheme.textSecondaryDark,
         ),
         tooltip: 'Send message',
       ),
@@ -657,10 +671,10 @@ class _MultimodalInputBarState extends State<MultimodalInputBar> {
   Widget _buildMicButton() {
     return Container(
       decoration: BoxDecoration(
-        color: _isListening ? AppTheme.error.withOpacity(0.2) : AppTheme.darkCard,
+        color: _isListening ? AppTheme.error.withOpacity(0.2) : Colors.transparent,
         shape: BoxShape.circle,
         border: Border.all(
-          color: _isListening ? AppTheme.error : AppTheme.darkBorder,
+          color: _isListening ? AppTheme.error : Colors.transparent,
         ),
       ),
       child: IconButton(
