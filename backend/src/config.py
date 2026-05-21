@@ -30,6 +30,10 @@ class Settings(BaseSettings):
         default=None,
         description="Hugging Face token (only needed for gated models)"
     )
+    ai_model: str = Field(
+        default="local/gemma-2-2b-it",
+        description="The AI model to use. Format: provider/model (e.g., openai/gpt-4o, gemini/gemini-1.5-pro) or local/model."
+    )
     max_tokens: int = 1024
     temperature: float = 0.7
     top_k: int = 40

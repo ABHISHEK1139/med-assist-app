@@ -31,3 +31,4 @@ bitsandbytes>=0.42.0           # 4-bit quantization for GPU loading
 
 # Integrations
 python-telegram-bot>=20.8      # Telegram bot bridge
+litellm>=1.0.0

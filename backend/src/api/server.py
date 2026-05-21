@@ -69,7 +69,8 @@ async def lifespan(app: FastAPI):
         max_tokens=settings.max_tokens,
         temperature=settings.temperature,
         top_k=settings.top_k,
-        use_gpu=settings.use_gpu
+        use_gpu=settings.use_gpu,
+        ai_model=settings.ai_model
     )
     
     # Try to initialize real Gemma model (downloads from HuggingFace)

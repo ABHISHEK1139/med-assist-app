@@ -4,11 +4,12 @@ A privacy-first, local medical AI application built for PC-to-phone portability.
 
 ## 🎯 Overview
 
-Med Assist App is a local medical AI assistant powered by **Gemma-2-2B** with 4-bit quantization, running entirely on your own hardware. No data leaves your devices — your PC processes AI requests while your phone stores all health data.
+    Med Assist App is a hybrid medical AI assistant powered by **Gemma-2-2B** (local GPU) OR **Any Cloud Provider** (OpenAI, Gemini, Anthropic, etc.). You have full control — run entirely on your own hardware for maximum privacy, or connect to powerful cloud models.
 
-### Key Features
+    ### Key Features
 
-- 🔒 **100% Local Processing** — No cloud, no data sharing. GDPR-compliant by design.
+    - 🔒 **100% Local or Cloud Configurable** — You choose. Run Gemma 2B locally (no data leaves your device), or plug in an API key for GPT-4 / Claude / Gemini.
+    - 🌍 **Multi-Provider Support** — Integrated with `litellm` to support 100+ AI models via a single `.env` variable (`MED_ASSIST_APP_AI_MODEL`).
 - 🧠 **Agentic AI Reasoning** — Multi-step reasoning with tool calls (symptom queries, health data lookups).
 - 📄 **Document Memory (RAG)** — Upload PDFs, lab reports, and images. ChromaDB retrieves relevant context for each query.
 - 💡 **Explainability** — See which documents influenced each AI response ("Why?" button).
@@ -36,8 +37,8 @@ Med Assist App is a local medical AI assistant powered by **Gemma-2-2B** with 4-
 ┌──────────────────────────▼──────────────────────────────────┐
 │                    Python Backend (PC)                       │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐   │
-│  │  FastAPI    │  │  Gemma-2-2B  │  │    ChromaDB      │   │
-│  │  Server     │◄─┤  (4-bit GPU) │◄─┤  Vector Store    │   │
+│  │  FastAPI    │  │ LiteLLM (Any)│  │    ChromaDB      │   │
+│  │  Server     │◄─┤ OR Gemma GPU │◄─┤  Vector Store    │   │
 │  └──────┬──────┘  └──────────────┘  └──────────────────┘   │
 │         │                                                   │
 │  ┌──────┴──────┐  ┌──────────────┐  ┌──────────────────┐   │

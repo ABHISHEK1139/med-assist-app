@@ -46,6 +46,7 @@ class LLMServiceConfig:
     model_id: str = "google/gemma-2-2b-it"  # Gemma 2 2B - fits 4GB VRAM
     hf_token: Optional[str] = None
     max_context_length: int = 4096  # Enough for agentic + documents
+    ai_model: str = "local/gemma-2-2b-it"
 
 
 class LLMService:
@@ -61,7 +62,21 @@ class LLMService:
         self._is_initialized = False
         
     def initialize(self) -> bool:
-        """Initialize the model with GPU support."""
+        """Initialize the model (local GPU or cloud API)."""
+        logger.info(f"Initializing LLMService with model: {self.config.ai_model}")
+        
+        # If it's not a local model, we just use LiteLLM
+        if not self.config.ai_model.startswith("local/"):
+            try:
+                import litellm
+                logger.success(f"Configured LiteLLM for cloud provider model: {self.config.ai_model}")
+                self._is_initialized = True
+                return True
+            except ImportError:
+                logger.error("litellm is not installed. Run: pip install litellm")
+                return False
+
+        # --- LOCAL GPU INITIALIZATION ---
         try:
             from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
             import os
@@ -70,12 +85,15 @@ class LLMService:
             if self.config.hf_token:
                 os.environ["HF_TOKEN"] = self.config.hf_token
             
-            logger.info(f"Loading model: {self.config.model_id}")
+            # The actual local model ID is what follows 'local/' (e.g., 'local/google/gemma-2-2b-it')
+            local_model_id = self.config.ai_model.replace("local/", "")
+            
+            logger.info(f"Loading local model: {local_model_id}")
             logger.info("This may take a minute on first run...")
             
             # Load tokenizer
             self._tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_id,
+                local_model_id,
                 trust_remote_code=True,
                 **token_arg
             )
@@ -98,7 +116,7 @@ class LLMService:
                 )
                 
                 self._model = AutoModelForCausalLM.from_pretrained(
-                    self.config.model_id,
+                    local_model_id,
                     quantization_config=bnb_config,
                     device_map="cuda:0",  # All on GPU!
                     trust_remote_code=True,
@@ -112,7 +130,7 @@ class LLMService:
             else:
                 logger.info("Loading model to CPU...")
                 self._model = AutoModelForCausalLM.from_pretrained(
-                    self.config.model_id,
+                    local_model_id,
                     torch_dtype=torch.float32,
                     low_cpu_mem_usage=True,
                     trust_remote_code=True,
@@ -124,15 +142,34 @@ class LLMService:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to initialize model: {e}")
+            logger.error(f"Failed to initialize local model: {e}")
             logger.info("Falling back to MockLLMService")
             return False
     
     def generate_response(self, prompt: str) -> str:
-        """Generate a response using Gemma."""
+        """Generate a response using the configured model."""
         if not self._is_initialized:
             return "[Error: Model not initialized]"
         
+        # --- CLOUD API GENERATION (LiteLLM) ---
+        if not self.config.ai_model.startswith("local/"):
+            try:
+                import litellm
+                messages = [{"role": "user", "content": prompt}]
+                
+                # We let litellm grab API keys directly from the environment variables
+                response = litellm.completion(
+                    model=self.config.ai_model,
+                    messages=messages,
+                    max_tokens=self.config.max_tokens,
+                    temperature=self.config.temperature,
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                logger.error(f"LiteLLM Generation failed: {e}")
+                return f"[Error: {str(e)}]"
+
+        # --- LOCAL GPU GENERATION ---
         try:
             # Format prompt for Gemma chat template
             messages = [
@@ -183,7 +220,7 @@ class LLMService:
             return response.strip()
             
         except Exception as e:
-            logger.error(f"Generation failed: {e}")
+            logger.error(f"Local Generation failed: {e}")
             # Clean up on error too
             if CUDA_AVAILABLE:
                 torch.cuda.empty_cache()
