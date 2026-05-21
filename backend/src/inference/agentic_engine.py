@@ -22,7 +22,7 @@ from loguru import logger
 
 
 class ToolType(Enum):
-    """Tools the AI can request from the phone."""
+    """Tools the AI can request."""
     QUERY_SYMPTOMS = "query_symptoms"      # Get active symptoms
     QUERY_CONDITIONS = "query_conditions"  # Get conditions
     QUERY_MEDICATIONS = "query_medications"  # Get medications
@@ -33,6 +33,8 @@ class ToolType(Enum):
     SAVE_INSIGHT = "save_insight"          # Save AI insight
     RESOLVE_SYMPTOM = "resolve_symptom"    # Mark symptom resolved
     GET_TIME = "get_time"                  # Get current time
+    SEARCH_PUBMED = "search_pubmed"        # Live medical database search
+    SEARCH_CLINICAL_TRIALS = "search_clinical_trials" # Live trial search
 
 
 @dataclass
@@ -224,6 +226,8 @@ AVAILABLE TOOLS (use only if needed):
 - SAVE_SYMPTOM: Save a new symptom (params: name, severity, notes)
 - SAVE_INSIGHT: Save an important health insight (params: insight, category)
 - RESOLVE_SYMPTOM: Mark a symptom as resolved (params: name)
+- SEARCH_PUBMED: Search live medical literature for rare diseases, drugs, or novel conditions (params: query)
+- SEARCH_CLINICAL_TRIALS: Search live clinical trials for a specific condition (params: condition)
 
 HOW TO USE TOOLS:
 If you need more information, respond with:
@@ -233,6 +237,10 @@ If you need more information, respond with:
 If you want to save something important:
 <TOOL>SAVE_SYMPTOM|name=Headache|severity=moderate|notes=started after lunch</TOOL>
 <REASON>User mentioned new symptom</REASON>
+
+If you are asked about a complex medical topic or recent drug/trial:
+<TOOL>SEARCH_PUBMED|query=Type 1 Diabetes breakthrough</TOOL>
+<REASON>Need recent literature to answer</REASON>
 
 RULES:
 1. Only use tools if you actually need more info

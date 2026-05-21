@@ -490,16 +490,57 @@ async def agentic_chat(request: AgenticChatRequest):
     # Force final response on round 3+ (no more tools allowed)
     force_final = request.round_number >= 3
     
-    # Process one round (with server-side conversation history + summary)
-    response_text, new_tool_calls, step = engine.process_single_round(
-        user_message=request.message,
-        health_context=request.health_context,
-        tool_results=tool_results if tool_results else None,
-        reasoning_history=None,
-        conversation_history=conversation_history,  # From server memory!
-        history_summary=history_summary,  # Summary of older messages
-        force_final=force_final
-    )
+    # Process round (with server-side conversation history + summary)
+    MAX_BACKEND_ROUNDS = 3
+    backend_rounds = 0
+    
+    while backend_rounds < MAX_BACKEND_ROUNDS:
+        response_text, new_tool_calls, step = engine.process_single_round(
+            user_message=request.message,
+            health_context=request.health_context,
+            tool_results=tool_results if tool_results else None,
+            reasoning_history=None,
+            conversation_history=conversation_history,  # From server memory!
+            history_summary=history_summary,  # Summary of older messages
+            force_final=force_final
+        )
+        
+        # Separate backend and frontend tool calls
+        backend_tool_calls = []
+        frontend_tool_calls = []
+        for tc in new_tool_calls:
+            if tc.tool in (ToolType.SEARCH_PUBMED, ToolType.SEARCH_CLINICAL_TRIALS):
+                backend_tool_calls.append(tc)
+            else:
+                frontend_tool_calls.append(tc)
+                
+        if not backend_tool_calls:
+            # Only frontend tools or no tools, break and return to phone
+            new_tool_calls = frontend_tool_calls
+            break
+            
+        # Execute backend tools!
+        from ..inference.live_apis import search_pubmed, search_clinical_trials
+        
+        if tool_results is None:
+            tool_results = []
+            
+        for btc in backend_tool_calls:
+            logger.info(f"⚡ Executing backend tool: {btc.tool.value}")
+            try:
+                if btc.tool == ToolType.SEARCH_PUBMED:
+                    query = btc.params.get("query", "")
+                    result = search_pubmed(query)
+                    tool_results.append(ToolResult(tool=btc.tool, success=result["status"] == "success", data=result.get("results"), error=result.get("message")))
+                elif btc.tool == ToolType.SEARCH_CLINICAL_TRIALS:
+                    condition = btc.params.get("condition", "")
+                    result = search_clinical_trials(condition)
+                    tool_results.append(ToolResult(tool=btc.tool, success=result["status"] == "success", data=result.get("results"), error=result.get("message")))
+            except Exception as e:
+                logger.error(f"Backend tool execution failed: {e}")
+                tool_results.append(ToolResult(tool=btc.tool, success=False, data=None, error=str(e)))
+                
+        backend_rounds += 1
     
     inference_time = (time.time() - start_time) * 1000
     
