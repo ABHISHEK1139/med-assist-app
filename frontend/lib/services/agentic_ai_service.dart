@@ -29,6 +29,10 @@ class AgenticAIService {
   
   /// Initialize the service
   Future<void> initialize({required String pcAddress, int port = 8000}) async {
+    // Idempotent: a second call (e.g. retry/reconnect) must not re-assign
+    // the late-final fields above (would throw LateInitializationError).
+    if (_isInitialized) return;
+    
     _pcAddress = pcAddress;
     _port = port;
     

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../core/constants/app_constants.dart';
 
@@ -24,10 +25,12 @@ class AIService {
       },
     );
     
-    // Add logging interceptor for debugging
+    // Add logging interceptor for debugging.
+    // Request/response bodies are only logged in debug builds: they can
+    // contain the user's health queries, which must never hit production logs.
     _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
+      requestBody: kDebugMode,
+      responseBody: kDebugMode,
       logPrint: (obj) => print('AI Service: $obj'),
     ));
   }

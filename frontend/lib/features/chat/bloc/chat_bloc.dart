@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,6 +23,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   // Cancellation support
   bool _isCancelled = false;
   Completer<void>? _currentGeneration;
+  // Cancels the in-flight Dio request so the backend stops burning GPU
+  // inference on a request the user already aborted.
+  CancelToken? _activeCancelToken;
   
   ChatBloc({
     dynamic aiService, // Kept for compatibility, not used
@@ -87,6 +91,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     _isCancelled = false;
     _currentGeneration = Completer<void>();
+    _activeCancelToken = CancelToken();
     
     // Add user message to chat
     final userMessage = ChatMessage(
@@ -149,8 +154,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       
       // Use agentic chat for smart responses
       final response = state.isConsultationMode 
-          ? await _medAssistApp.runConsultation(event.message)
-          : await _medAssistApp.chat(event.message);
+          ? await _medAssistApp.runConsultation(event.message, cancelToken: _activeCancelToken)
+          : await _medAssistApp.chat(event.message, cancelToken: _activeCancelToken);
       
       if (_isCancelled) {
         _handleCancellation(emit, reasoningSteps);
@@ -205,6 +210,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     } finally {
       _currentGeneration?.complete();
       _currentGeneration = null;
+      _activeCancelToken = null;
     }
   }
   
@@ -231,6 +237,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) {
     _isCancelled = true;
+    // Abort the in-flight HTTP request so the backend stops the inference
+    // (the phone already discards the late response via _isCancelled).
+    _activeCancelToken?.cancel('User stopped generation');
     emit(state.copyWith(isCancelled: true));
   }
   

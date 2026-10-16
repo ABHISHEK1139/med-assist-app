@@ -555,7 +555,7 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
   
   Widget _buildSimpleThinkingIndicator() {

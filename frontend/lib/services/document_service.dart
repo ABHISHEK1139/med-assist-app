@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 
+import '../core/constants/app_constants.dart';
+
 /// Document Service
 /// 
 /// Handles uploading medical documents to PC backend for processing.
@@ -86,6 +88,15 @@ class DocumentService {
         return DocumentUploadResult.error('File not found');
       }
       
+      // Enforce the upload size cap client-side (the server enforces it too)
+      final fileSizeMB = await file.length() / (1024 * 1024);
+      if (fileSizeMB > AppConstants.maxFileUploadMB) {
+        return DocumentUploadResult.error(
+          'File too large: ${fileSizeMB.toStringAsFixed(1)} MB '
+          '(max ${AppConstants.maxFileUploadMB} MB)',
+        );
+      }
+      
       final fileName = path.basename(filePath);
       print('📤 Uploading: $fileName');
       
@@ -101,7 +112,7 @@ class DocumentService {
       
       // Upload to PC backend
       final response = await _dio.post(
-        '/api/upload',
+        '/upload',
         data: formData,
         onSendProgress: (sent, total) {
           final progress = (sent / total * 100).toStringAsFixed(0);
@@ -140,7 +151,7 @@ class DocumentService {
     if (!_isInitialized) return [];
     
     try {
-      final response = await _dio.get('/api/documents');
+      final response = await _dio.get('/documents');
       if (response.statusCode == 200) {
         final List<dynamic> docs = response.data ?? [];
         return docs.map((d) => StoredDocument.fromJson(d)).toList();
@@ -160,7 +171,7 @@ class DocumentService {
     if (!_isInitialized) return [];
     
     try {
-      final response = await _dio.post('/api/context', data: {
+      final response = await _dio.post('/context', data: {
         'query': query,
         'n_results': maxResults,
         if (docType != null) 'doc_type': docType,

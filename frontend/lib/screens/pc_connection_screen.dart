@@ -64,6 +64,7 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
     final prefs = await SharedPreferences.getInstance();
     final savedIP = prefs.getString('pc_ip_address');
     
+    if (!mounted) return;
     setState(() {
       _savedIP = savedIP;
       if (savedIP != null) _ipController.text = savedIP;
@@ -72,6 +73,7 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
     
     // Listen to discovery progress
     _discoverySubscription = _discoveryService.progressStream.listen((progress) {
+      if (!mounted) return;
       setState(() {
         _statusMessage = progress.status;
         _scanProgress = progress.progress;
@@ -83,6 +85,7 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
       lastKnownIP: savedIP,
     );
     
+    if (!mounted) return;
     setState(() {
       _isScanning = false;
       _discoveredServers = servers;
@@ -148,8 +151,11 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
     try {
       final connected = await _MedAssistAppService.connectToPC(ip, port: port);
       
+      if (!mounted) return;
+      
       if (connected) {
         await _saveIP(ip);
+        if (!mounted) return;
         setState(() {
           _isConnecting = false;
           _isConnected = true;
@@ -158,6 +164,7 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
         
         // Wait a moment then proceed
         await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
         widget.onConnected();
       } else {
         setState(() {
@@ -167,6 +174,7 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isConnecting = false;
         _errorMessage = e.toString();
@@ -181,6 +189,7 @@ class _PCConnectionScreenState extends State<PCConnectionScreen>
     _ipController.dispose();
     _portController.dispose();
     _discoverySubscription?.cancel();
+    _discoveryService.cancelDiscovery();
     _discoveryService.dispose();
     super.dispose();
   }
