@@ -30,6 +30,23 @@ class PCDiscoveryService {
   final _progressController = StreamController<DiscoveryProgress>.broadcast();
   Stream<DiscoveryProgress> get progressStream => _progressController.stream;
   
+  /// Set when the scan should stop (e.g. the UI was disposed).
+  /// Prevents "Cannot add event after closing" StateErrors from in-flight scans.
+  bool _cancelled = false;
+  
+  /// Cancel any in-flight discovery scan.
+  void cancelDiscovery() {
+    _cancelled = true;
+  }
+  
+  /// Report progress only if the scan is still wanted and the
+  /// controller is open (safe to call from in-flight scans).
+  void _reportProgress(DiscoveryProgress progress) {
+    if (_cancelled) return;
+    if (_progressController.isClosed) return;
+    _progressController.add(progress);
+  }
+  
   /// Auto-discover PC on local network
   /// 
   /// Scans common IP ranges and checks for Med Assist App backend
@@ -38,10 +55,11 @@ class PCDiscoveryService {
     int port = defaultPort,
   }) async {
     _discoveredServers.clear();
+    _cancelled = false;
     
     // Step 1: Try last known IP first (fastest)
     if (lastKnownIP != null) {
-      _progressController.add(DiscoveryProgress(
+      _reportProgress(DiscoveryProgress(
         status: 'Trying last known IP: $lastKnownIP',
         progress: 0.05,
       ));
@@ -49,7 +67,7 @@ class PCDiscoveryService {
       final server = await _checkServer(lastKnownIP, port);
       if (server != null) {
         _discoveredServers.add(server);
-        _progressController.add(DiscoveryProgress(
+        _reportProgress(DiscoveryProgress(
           status: 'Found server at $lastKnownIP!',
           progress: 1.0,
           found: true,
@@ -59,7 +77,7 @@ class PCDiscoveryService {
     }
     
     // Step 2: Get local IP and scan subnet
-    _progressController.add(DiscoveryProgress(
+    _reportProgress(DiscoveryProgress(
       status: 'Scanning local network...',
       progress: 0.1,
     ));
@@ -76,12 +94,12 @@ class PCDiscoveryService {
       }
     }
     
-    // Always include mobile hotspot subnets (your PC connects to phone hotspot)
+    // Also include well-known mobile hotspot subnets (generic, not personal)
     subnetsToScan.add('192.168.43');  // Android hotspot (common)
     subnetsToScan.add('172.20.10');   // iPhone hotspot
-    subnetsToScan.add('10.103.198');  // Your specific hotspot subnet!
     
     for (final subnet in subnetsToScan) {
+      if (_cancelled) return _discoveredServers;
       // For hotspot networks, scan more IPs (PC could be .2 to .50)
       final isHotspot = subnet == '192.168.43' || 
                         subnet == '172.20.10' || 
@@ -103,10 +121,11 @@ class PCDiscoveryService {
       
       int checked = 0;
       for (final future in futures) {
+        if (_cancelled) return _discoveredServers;
         final server = await future;
         checked++;
         
-        _progressController.add(DiscoveryProgress(
+        _reportProgress(DiscoveryProgress(
           status: 'Scanning $subnet.x ($checked/${futures.length})',
           progress: 0.1 + (0.8 * checked / futures.length / subnetsToScan.length),
         ));
@@ -117,7 +136,7 @@ class PCDiscoveryService {
       }
     }
     
-    _progressController.add(DiscoveryProgress(
+    _reportProgress(DiscoveryProgress(
       status: _discoveredServers.isEmpty 
           ? 'No servers found' 
           : 'Found ${_discoveredServers.length} server(s)',
@@ -136,10 +155,17 @@ class PCDiscoveryService {
       if (server != null) return server;
     }
     
-    // Second: Try 10.x subnet (some hotspots use this - like yours!)
-    for (final host in [78, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
-      final server = await _checkServer('10.103.198.$host', port);
-      if (server != null) return server;
+    // Second: Try 10.x subnets from this device's own interfaces (hotspot)
+    final localIPs = await _getLocalIPs();
+    for (final localIP in localIPs) {
+      if (!localIP.startsWith('10.')) continue;
+      final parts = localIP.split('.');
+      if (parts.length != 4) continue;
+      final subnet = '${parts[0]}.${parts[1]}.${parts[2]}';
+      for (final host in [2, 3, 4, 5, 6, 7, 8, 9, 10, 1]) {
+        final server = await _checkServer('$subnet.$host', port);
+        if (server != null) return server;
+      }
     }
     
     // Third: Try iPhone hotspot subnet
@@ -149,8 +175,6 @@ class PCDiscoveryService {
     }
     
     // Fourth: Try from actual network interfaces
-    final localIPs = await _getLocalIPs();
-    
     for (final localIP in localIPs) {
       final parts = localIP.split('.');
       if (parts.length != 4) continue;
@@ -243,6 +267,7 @@ class PCDiscoveryService {
   }
   
   void dispose() {
+    _cancelled = true;
     _progressController.close();
     _dio.close();
   }

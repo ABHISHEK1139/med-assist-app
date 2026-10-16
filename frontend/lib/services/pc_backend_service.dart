@@ -45,17 +45,33 @@ class PCBackendService {
   bool _isConnected = false;
   String? _error;
   
+  /// API key for the backend's X-API-Key auth (set via setApiKey).
+  String? _apiKey;
+  
   bool get isReady => _isInitialized && _isConnected;
   bool get isConnected => _isConnected;
   String? get error => _error;
   String get serverUrl => 'http://$_pcAddress:$_port';
+  
+  /// Set the API key sent as the X-API-Key header on every backend request.
+  void setApiKey(String? key) {
+    _apiKey = key;
+  }
   
   /// Stream of pending AI storage requests (needs user approval)
   Stream<List<AIStorageCommand>> get pendingAICommands => _aiMemoryManager.pendingApprovals;
   
   /// Initialize service with PC address
   Future<bool> initialize({String? pcAddress, int port = 8000}) async {
-    if (_isInitialized && pcAddress == null) return _isConnected;
+    if (_isInitialized) {
+      // Already initialized: never re-assign the late-final fields above
+      // (a second assignment would throw LateInitializationError).
+      if (pcAddress != null) {
+        _pcAddress = pcAddress;
+      }
+      _port = port;
+      return _isConnected;
+    }
     
     _port = port;
     if (pcAddress != null) {
@@ -107,6 +123,17 @@ class PCBackendService {
             } catch (_) {}
           }
           return handler.next(error);
+        },
+      ));
+      
+      // Attach the API key header on every request when configured
+      // (the backend enforces X-API-Key on all routes except /health)
+      _dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (_apiKey != null && _apiKey!.isNotEmpty) {
+            options.headers['X-API-Key'] = _apiKey;
+          }
+          return handler.next(options);
         },
       ));
       
@@ -207,7 +234,7 @@ class PCBackendService {
   /// 3. Send message + context to PC
   /// 4. PC processes with GPU model
   /// 5. Return response to phone
-  Future<PCBackendResponse> chat(String message) async {
+  Future<PCBackendResponse> chat(String message, {CancelToken? cancelToken}) async {
     if (!_isInitialized) {
       await initialize();
     }
@@ -244,6 +271,7 @@ class PCBackendService {
           'analysis_type': 'health_with_context',
           'include_context': false, // Context already in prompt
         },
+        cancelToken: cancelToken,
       );
       
       stopwatch.stop();
@@ -354,6 +382,7 @@ Note: This is for informational purposes only, not medical advice.
     String message, {
     List<Map<String, dynamic>>? previousHistory,  // Only when loading old chat
     bool isLoadingHistory = false,  // True when loading from chat history
+    CancelToken? cancelToken,  // Cancelled when the user stops generation
   }) async {
     if (!_isInitialized) {
       await initialize();
@@ -403,6 +432,7 @@ Note: This is for informational purposes only, not medical advice.
         final apiResponse = await _dio.post(
           '$serverUrl/chat/agentic',
           data: requestBody,
+          cancelToken: cancelToken,
         );
         
         if (apiResponse.statusCode == 200) {
@@ -459,7 +489,7 @@ Note: This is for informational purposes only, not medical advice.
   }
 
   /// Run multi-agent consultation
-  Future<PCBackendResponse> runConsultation(String message) async {
+  Future<PCBackendResponse> runConsultation(String message, {CancelToken? cancelToken}) async {
     if (!_isInitialized) {
       await initialize();
     }
@@ -483,6 +513,7 @@ Note: This is for informational purposes only, not medical advice.
       final apiResponse = await _dio.post(
         '$serverUrl/chat/consultation',
         data: requestBody,
+        cancelToken: cancelToken,
       );
       
       if (apiResponse.statusCode == 200) {

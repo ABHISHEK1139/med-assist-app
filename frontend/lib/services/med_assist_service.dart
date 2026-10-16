@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'pc_backend_service.dart';
 import 'health_archive/health_archive.dart';
 
@@ -61,12 +62,15 @@ class MedAssistAppService {
   }
   
   /// Connect to your PC running the AI model
-  Future<bool> connectToPC(String pcAddress, {int port = 8000}) async {
+  Future<bool> connectToPC(String pcAddress, {int port = 8000, String? apiKey}) async {
     if (!_isInitialized) {
       await initialize();
     }
     
     _pcAddress = pcAddress;
+    if (apiKey != null) {
+      _backendService.setApiKey(apiKey);
+    }
     final connected = await _backendService.connectToPC(pcAddress, port: port);
     
     if (connected) {
@@ -80,7 +84,7 @@ class MedAssistAppService {
   
   /// Send a chat message - symptoms extracted locally, AI on PC
   /// Uses agentic mode for multi-step reasoning (AI can query DB)
-  Future<String> chat(String message, {bool useAgentic = true}) async {
+  Future<String> chat(String message, {bool useAgentic = true, CancelToken? cancelToken}) async {
     if (!_isInitialized) {
       final initialized = await initialize();
       if (!initialized) {
@@ -107,7 +111,7 @@ Make sure phone and laptop are on same WiFi!''';
     // AI can query database, save insights, do multi-step reasoning
     if (useAgentic) {
       try {
-        final result = await _backendService.agenticChat(message);
+        final result = await _backendService.agenticChat(message, cancelToken: cancelToken);
         return result.response;
       } catch (e) {
         print('⚠️ Agentic chat failed, falling back to regular: $e');
@@ -115,12 +119,12 @@ Make sure phone and laptop are on same WiFi!''';
       }
     }
     
-    final result = await _backendService.chat(message);
+    final result = await _backendService.chat(message, cancelToken: cancelToken);
     return result.response;
   }
   
   /// Run a multi-agent consultation
-  Future<String> runConsultation(String message) async {
+  Future<String> runConsultation(String message, {CancelToken? cancelToken}) async {
     if (!_isInitialized) {
       final initialized = await initialize();
       if (!initialized) {
@@ -132,7 +136,7 @@ Make sure phone and laptop are on same WiFi!''';
       return '❌ Not connected to PC.';
     }
     
-    final result = await _backendService.runConsultation(message);
+    final result = await _backendService.runConsultation(message, cancelToken: cancelToken);
     return result.response;
   }
   
